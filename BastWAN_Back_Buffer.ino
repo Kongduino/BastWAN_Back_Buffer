@@ -10,6 +10,7 @@ uint32_t offsetX = 75, offsetY = 100, barWidth = 160, barHeight = 20;
 #define SD_CS 5
 Adafruit_ILI9341 tft(&SPI1, ILI9341_DC, ILI9341_CS, -1);
 BBQ10Keyboard keyboard;
+#define PI 3.141592653
 
 void setup() {
   // ---- HOUSEKEEPING ----
@@ -75,27 +76,40 @@ void loop() {
   }
 }
 
+uint16_t rgbColor(uint8_t r, uint8_t g, uint8_t b) {
+  uint16_t c = (r & 0b11111) << 11 | (g & 0b111111) << 5 | (b & 0b11111);
+  Serial.println("Color = " + String(c, HEX));
+  return c;
+}
 
 void drawSlider() {
-  uint8_t i, j;
-  uint16_t lm = barWidth * r0;
+  uint16_t i, lm = barWidth * r0, c = 360 * r0;
   uint16_t rm = barWidth - lm;
   Serial.println("lm = " + String(lm));
   Serial.println("r0 = " + String(r0));
+  Serial.println("c  = " + String(c));
   tft.startWrite();
   tft.writeFastHLine(offsetX, offsetY, barWidth + 2, ILI9341_RED);
   tft.writeFastHLine(offsetX, offsetY + barHeight + 1, barWidth + 2, ILI9341_RED);
   tft.writeFastVLine(offsetX, offsetY, barHeight + 2, ILI9341_RED);
   tft.writeFastVLine(offsetX + barWidth + 2, offsetY, barHeight + 2, ILI9341_RED);
-  for (j = 0; j < barHeight; j++) {
-    if (lm == barWidth) {
-      tft.writeFastHLine(offsetX + 1, offsetY + j + 1, barWidth, ILI9341_BLUE);
-    } else if (lm == 0) {
-      tft.writeFastHLine(offsetX + 1, offsetY + j + 1, barWidth, ILI9341_WHITE);
-    } else {
-      tft.writeFastHLine(offsetX + 1, offsetY + j + 1, lm, ILI9341_BLUE);
-      tft.writeFastHLine(offsetX + lm + 2, offsetY + j + 1, rm, ILI9341_WHITE);
-    }
+  if (lm == barWidth) {
+    tft.writeFillRect(offsetX + 1, offsetY + 1, barWidth, barHeight, ILI9341_BLUE);
+  } else if (lm == 0) {
+    tft.writeFillRect(offsetX + 1, offsetY + 1, barWidth, barHeight, ILI9341_WHITE);
+  } else {
+    tft.writeFillRect(offsetX + 1, offsetY + 1, lm, barHeight, ILI9341_BLUE);
+    tft.writeFillRect(offsetX + lm + 2, offsetY + 1, rm, barHeight, ILI9341_WHITE);
+  }
+  uint16_t angle = 180, // rotation(1) so we're technically upside down
+           cx = offsetX + barWidth + 30, cy = offsetY + barHeight / 2;
+  for (i = 0; i < 360; i++) {
+    // draw a circle that's r0% filled, c being 360 * r0
+    uint16_t cl = ILI9341_GREEN;
+    if (i > c) cl = ILI9341_WHITE;
+    tft.writeLine(cx, cy, cx + (sin(angle * PI / 180) * 16), cy + (cos(angle * PI / 180) * 16), cl);
+    if (angle == 0) angle = 359;
+    else angle -= 1;
   }
   tft.endWrite();
 }
